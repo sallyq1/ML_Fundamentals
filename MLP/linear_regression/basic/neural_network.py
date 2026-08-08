@@ -4,6 +4,9 @@ import torch.optim as optim
 import numpy as np
 
 
+from generate_training_data import generate_training_data
+
+
 
 # 1. Define the architecture class 
 class PiecewiseLearner(nn.Module):
@@ -23,7 +26,7 @@ class PiecewiseLearner(nn.Module):
         return self.output(self.relu(self.hidden(x)))
 
 # 2. Write the training function
-def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray):
+def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray, epochs : int, learning_rate: float):
    
    # convert from numpy to tensors
     x_tensor, y_tensor = convert_numpy_to_tensors(np_x_inputs,np_y_outputs)
@@ -31,8 +34,8 @@ def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray):
     # initialize model, loss function, and optimizer
     model = PiecewiseLearner() 
     loss_func = nn.MSELoss() 
-    optimizer = optim.Adam(model.parameters(), lr=1e-3) # adam optimizer for adaptive optimization
-    epochs = 500
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate) # adam optimizer for adaptive optimization
+   
     # THE TRAINING LOOOOP (finally)
     for epoch in range(epochs + 1):
         # 1. Reset old gradients
@@ -63,3 +66,13 @@ def convert_numpy_to_tensors(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray):
     y_tensor = torch.tensor(np_y_outputs, dtype=torch.float32)
     return x_tensor, y_tensor
 
+
+def main():
+    x_inputs, y_outputs = generate_training_data("world1", 8826, 1000, "gaussian", "uniform", 0.3)
+
+    # Pass them into your fresh training function
+    trained_model = train_neural_network(x_inputs, y_outputs, epochs=10000, learning_rate = 0.1)
+
+
+if __name__ == "__main__":
+    main()
