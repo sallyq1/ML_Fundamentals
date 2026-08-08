@@ -4,7 +4,6 @@
 # numpy is for heavy mathematical calculations
 # matplotlib for drawing the actual graphics
 
-from tkinter import Y
 import numpy as np
 
 

@@ -11,8 +11,8 @@ The data that I used to generate the world used NumPy, to use Pytorch we'll need
 **What is the difference between a tensor and a numpy array?**
 
     1) Hardware: 
-        - **Numpy Array:** Can run on CPUs, TPUs, and GPUs
-        - **Tensors:** Only CPUs
+        - **Tensors:** Can run on CPUs, TPUs, and GPUs
+        - **Numpy Array:**Only CPUs
 
     2) Use Case: 
         - **Numpy Array:** General-purpose scientific computing, data manipulation, and traditional machine learning

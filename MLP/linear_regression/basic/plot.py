@@ -3,7 +3,6 @@
 # NOTE: Later on let's work on figuring out how to use plotly for more complicated 3D-like functions (the fun stuff)
 
 
-from webbrowser import get
 import numpy as np
 import matplotlib.pyplot as plt
 
