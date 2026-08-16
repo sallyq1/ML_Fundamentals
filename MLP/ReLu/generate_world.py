@@ -1,5 +1,5 @@
 # Okay let's start with generating our fake world ...
-# For now, we'll just focus on piecewise linear examples (because if you can't do that then what can you do really??)
+# For now, we'll just focus on piecewise 1d examples (because if you can't do that then what can you do really??)
 
 # numpy is for heavy mathematical calculations
 # matplotlib for drawing the actual graphics
