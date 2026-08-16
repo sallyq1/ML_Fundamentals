@@ -12,20 +12,20 @@ from plot import plot_model_vs_world
 # 1. Define the architecture class 
 class PiecewiseLearner(nn.Module):
     def __init__(self):
-        super().__init__() # triggers initialization from pytorch
+        super().__init__()
         
         #create the first hidden layer using a linear template (y = xW^T + b)
         self.hidden = nn.Linear(1, 64) # 1 input value per sample and 64 output features
-        # projects that 1 one single value into 64 distinct nodes (each node learns its own unique slope and bias combination)
-        # splits out input into 64 alternate perspectives
-        self.hidden2 = nn.Linear(64, 64) # 1 input value per sample and 64 output features
+        # projects that one single value into 64 distinct nodes (each node learns its own unique slope and bias combination)
+        # splits the input into 64 alternate perspectives
+        self.hidden2 = nn.Linear(64, 64) 
         
-        self.hidden3 = nn.Linear(64, 64) # 1 input value per sample and 64 output features
+        self.hidden3 = nn.Linear(64, 64) 
 
 
-        self.relu = nn.ReLU() # instantiates the relu activation functiuon
+        self.relu = nn.ReLU() # instantiates the relu activation function
 
-        self.output = nn.Linear(64, 1) # the output dimension where it takes those 64 nodes and compresses them back into a single continous output (y_hat) prediction
+        self.output = nn.Linear(64, 1) # the output dimension where it takes those 64 nodes and compresses them back into a single continuous output (y_hat) prediction
 
     def forward(self, x):
         x = self.relu(self.hidden(x))
@@ -42,9 +42,9 @@ def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray, epoc
     # initialize model, loss function, and optimizer
     model = PiecewiseLearner() 
     loss_func = nn.MSELoss() 
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate) # adam optimizer for adaptive optimization
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate) 
    
-    # THE TRAINING LOOOOP (finally)
+    # THE TRAINING LOOOOP
     for epoch in range(epochs + 1):
         # 1. Reset old gradients
         optimizer.zero_grad() #resets gradients from previous loop (if any)
@@ -59,13 +59,8 @@ def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray, epoc
         loss.backward()
 
         # 5. Update the weights
-        optimizer.step() #it nudges all the weights and stuff in the right direction here
-        # The cool thing here is that because we are using the Adam optimizer, it will nudge weights that are having trouble learning with larger step sizes and the weights that are oscillating a lot would have smaller step sizes
+        optimizer.step() 
 
-
-        # Print Progress every 100 epochs
-        if epoch % 100 == 0:
-            print(f"Epoch: {epoch} | MSE Loss: {loss}")
 
     return model
 
@@ -77,8 +72,7 @@ def convert_numpy_to_tensors(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray):
 
 def main():
     x_inputs, y_outputs = generate_training_data("world1", 8826, 1000, "gaussian", "uniform", 0.3)
-
-    # Pass them into your fresh training function
+   
     trained_model = train_neural_network(x_inputs, y_outputs, epochs=20000, learning_rate = 0.01)
 
     plot_model_vs_world(trained_model, "world1", x_inputs, y_outputs)

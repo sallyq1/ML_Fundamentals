@@ -10,7 +10,7 @@ import numpy as np
 def generate_fake_world1(x):
 
     #Fake world #1:
-    # if X > 0  : -x^3 - 3x^2 + 2x + 1
+    # if X < 0  : -x^3 - 3x^2 + 2x + 1
     # if 0 <= X <= 2  :  cos(15x) * sin(5x^2) + 1
     # if X > 2  :  e^-(x-2) * cos(25x-50) + cos(30) * sin(20)
 

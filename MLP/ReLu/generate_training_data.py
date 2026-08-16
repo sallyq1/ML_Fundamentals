@@ -5,19 +5,6 @@ from plot import plot_points
 from generate_world import get_y_outputs
 
 
-noise_distribution_type = {
-    1: "uniform",
-    2: "skewed",
-    3: "gaussian"
-    # (add some other ones later)
-}
-
-sampling_distribution_type = {
-    1: "uniform",
-    2: "skewed"
-    # (add some other ones later)
-}
-
 def generate_training_data(world_type: str, seed: int, number_of_datapoints: int, noise_dist_type: str, sampling_dist_type: str, noise_lvl: float): 
     # 1. initialize the random variable using seed
     rng = np.random.default_rng(seed)
@@ -33,7 +20,7 @@ def generate_training_data(world_type: str, seed: int, number_of_datapoints: int
         x_inputs = rng.exponential(scale=2.0,  size=(number_of_datapoints, 1))
 
     else: 
-        raise ValueError(f"Unknown sampling type specification : {noise_dist_type}")
+        raise ValueError(f"Unknown sampling type specification : {sampling_dist_type}")
 
     # 3. Pass the clean inputs into the fake world function
     y_clean = get_y_outputs(world_type, x_inputs)
@@ -51,11 +38,10 @@ def generate_training_data(world_type: str, seed: int, number_of_datapoints: int
         noise = rng.gumbel(loc=0.0, scale=noise_lvl, size=y_clean.shape)
         noise -= noise.mean() 
     else:
-        raise ValueError(f"Unknown noise distribution: {sampling_dist_type}")
+        raise ValueError(f"Unknown noise distribution: {noise_dist_type}")
 
     y_outputs = y_clean + noise
-    print(x_inputs.shape, y_outputs.shape)
-    plot_points(x_inputs, y_outputs)
+    # plot_points(x_inputs, y_outputs)
 
     return x_inputs, y_outputs
 

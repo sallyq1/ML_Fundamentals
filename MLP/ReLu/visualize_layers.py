@@ -1,4 +1,3 @@
-
 # What the network looks like after 1, 2, and 3 hidden layers.
 
 # The 1D "output after layer k" is a linear mix of that layer's nodes
@@ -6,75 +5,22 @@
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import matplotlib.pyplot as plt
 
+from generate_training_data import generate_training_data
 from generate_world import get_y_outputs
+from neural_network import convert_numpy_to_tensors, train_neural_network
 
 
-N_HIDDEN = 8  # small enough to read, big enough to actually fit
 WORLD = "world1"
-X_MIN, X_MAX = -5.0, 5.0
 
 
-class SmallDeepReLU(nn.Module):
-    def __init__(self, n_hidden=N_HIDDEN):
-        super().__init__()
-        self.hidden = nn.Linear(1, n_hidden)
-        self.hidden2 = nn.Linear(n_hidden, n_hidden)
-        self.hidden3 = nn.Linear(n_hidden, n_hidden)
-        self.relu = nn.ReLU()
-        self.output = nn.Linear(n_hidden, 1)
-        self._init_weights()
-
-    def _init_weights(self):
-        # Tiny deep ReLUs often "die" (everything clipped to 0). A little positive
-        # bias keeps more sticks off the floor at the start of training.
-        for layer in (self.hidden, self.hidden2, self.hidden3):
-            nn.init.kaiming_uniform_(layer.weight, nonlinearity="relu")
-            nn.init.constant_(layer.bias, 0.1)
-        nn.init.xavier_uniform_(self.output.weight)
-        nn.init.zeros_(self.output.bias)
-
-    def forward(self, x):
-        x = self.relu(self.hidden(x))
-        x = self.relu(self.hidden2(x))
-        x = self.relu(self.hidden3(x))
-        return self.output(x)
-
-    def hidden_states(self, x):
-        z1 = self.hidden(x)
-        h1 = self.relu(z1)
-        z2 = self.hidden2(h1)
-        h2 = self.relu(z2)
-        z3 = self.hidden3(h2)
-        h3 = self.relu(z3)
-        y_hat = self.output(h3)
-        return (z1, h1), (z2, h2), (z3, h3), y_hat
-
-
-def make_training_data(n=1000, seed=8826, noise=0.3):
-    rng = np.random.default_rng(seed)
-    x = rng.uniform(X_MIN, X_MAX, size=(n, 1))
-    y = get_y_outputs(WORLD, x) + rng.normal(0.0, noise, size=x.shape)
-    return x, y
-
-
-def train(x, y, epochs=6000, lr=0.01):
-    model = SmallDeepReLU()
-    opt = optim.Adam(model.parameters(), lr=lr)
-    loss_fn = nn.MSELoss()
-    xt = torch.tensor(x, dtype=torch.float32)
-    yt = torch.tensor(y, dtype=torch.float32)
-    for epoch in range(epochs + 1):
-        opt.zero_grad()
-        loss = loss_fn(model(xt), yt)
-        loss.backward()
-        opt.step()
-        if epoch % 500 == 0:
-            print(f"Epoch: {epoch} | MSE Loss: {loss.item():.4f}")
-    return model
+def hidden_activations(model, x):
+    h1 = model.relu(model.hidden(x))
+    h2 = model.relu(model.hidden2(h1))
+    h3 = model.relu(model.hidden3(h2))
+    y_hat = model.output(h3)
+    return h1, h2, h3, y_hat
 
 
 def _readout_weights(H, y):
@@ -88,17 +34,19 @@ def _apply_readout(H, beta):
     return A @ beta
 
 
-def collect_curves(model, x_train, y_train, n_grid=800):
-    x_grid = np.linspace(X_MIN, X_MAX, n_grid).reshape(-1, 1)
-    xt = torch.tensor(x_train, dtype=torch.float32)
+def collect_curves(model, x_train, y_train, world_type=WORLD, start_window=-5, end_window=5, step_count=1000):
+    x_grid = np.linspace(start_window, end_window, step_count).reshape(-1, 1)
+    xt, _ = convert_numpy_to_tensors(x_train, y_train)
     xg = torch.tensor(x_grid, dtype=torch.float32)
+
     model.eval()
     with torch.no_grad():
-        (_, h1_tr), (_, h2_tr), (_, h3_tr), _ = model.hidden_states(xt)
-        (z1, h1), (z2, h2), (z3, h3), y_hat = model.hidden_states(xg)
-    to_np = lambda t: t.detach().cpu().numpy()
-    h1_tr, h2_tr = to_np(h1_tr), to_np(h2_tr)
-    h1, h2, h3 = to_np(h1), to_np(h2), to_np(h3)
+        h1_tr, h2_tr, _, _ = hidden_activations(model, xt)
+        h1, h2, h3, y_hat = hidden_activations(model, xg)
+
+    h1_tr, h2_tr = h1_tr.numpy(), h2_tr.numpy()
+    h1, h2, h3 = h1.numpy(), h2.numpy(), h3.numpy()
+
     # If we stopped after layer 1 or 2, this is the 1D curve those nodes can already draw
     y_after_l1 = _apply_readout(h1, _readout_weights(h1_tr, y_train))
     y_after_l2 = _apply_readout(h2, _readout_weights(h2_tr, y_train))
@@ -107,11 +55,10 @@ def collect_curves(model, x_train, y_train, n_grid=800):
         "h1": h1,
         "h2": h2,
         "h3": h3,
-        "z2": to_np(z2),
         "y_after_l1": y_after_l1,
         "y_after_l2": y_after_l2,
-        "y_hat": to_np(y_hat).ravel(),
-        "y_true": get_y_outputs(WORLD, x_grid).ravel(),
+        "y_hat": y_hat.numpy().ravel(),
+        "y_true": get_y_outputs(world_type, x_grid).ravel(),
     }
 
 
@@ -119,7 +66,7 @@ def plot_output_after_each_layer(curves, x_train, y_train):
     x = curves["x"]
     rows = [
         (curves["y_after_l1"], "After layer 1 only", "tab:blue"),
-        (curves["y_after_l2"], "After layer 2 ", "tab:orange"),
+        (curves["y_after_l2"], "After layer 2", "tab:orange"),
         (curves["y_hat"], "After layer 3", "black"),
     ]
     fig, axes = plt.subplots(3, 1, figsize=(11, 10), sharex=True, sharey=True)
@@ -138,7 +85,8 @@ def plot_output_after_each_layer(curves, x_train, y_train):
 
 
 def plot_layer_stack(curves, x_train, y_train):
-    colors = plt.cm.tab10(np.linspace(0, 1, N_HIDDEN, endpoint=False))
+    n_hidden = curves["h1"].shape[1]
+    colors = plt.cm.viridis(np.linspace(0, 1, n_hidden, endpoint=False))
     x = curves["x"]
 
     fig, axes = plt.subplots(4, 1, figsize=(11, 12), sharex=True)
@@ -148,12 +96,11 @@ def plot_layer_stack(curves, x_train, y_train):
         (axes[2], curves["h3"], "Layer 3"),
     ]
     for ax, acts, title in rows:
-        for j in range(N_HIDDEN):
-            ax.plot(x, acts[:, j], color=colors[j], lw=2, label=f"node {j}")
+        for j in range(n_hidden):
+            ax.plot(x, acts[:, j], color=colors[j], lw=1)
         ax.axhline(0, color="gray", lw=0.8, ls=":")
         ax.set_ylabel("activation")
         ax.set_title(title)
-        ax.legend(loc="upper right", ncol=N_HIDDEN, fontsize=8)
 
     ax = axes[3]
     ax.scatter(x_train, y_train, s=6, c="lightgray", alpha=0.45, label="training data", zorder=1)
@@ -169,10 +116,9 @@ def plot_layer_stack(curves, x_train, y_train):
     plt.show()
 
 
-
 def main():
-    x_train, y_train = make_training_data()
-    model = train(x_train, y_train)
+    x_train, y_train = generate_training_data("world1", 8826, 1000, "gaussian", "uniform", 0.3)
+    model = train_neural_network(x_train, y_train, epochs=20000, learning_rate=0.01)
     curves = collect_curves(model, x_train, y_train)
     plot_output_after_each_layer(curves, x_train, y_train)
     plot_layer_stack(curves, x_train, y_train)
