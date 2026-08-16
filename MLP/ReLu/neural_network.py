@@ -5,6 +5,7 @@ import numpy as np
 
 
 from generate_training_data import generate_training_data
+from plot import plot_model_vs_world
 
 
 
@@ -17,13 +18,20 @@ class PiecewiseLearner(nn.Module):
         self.hidden = nn.Linear(1, 64) # 1 input value per sample and 64 output features
         # projects that 1 one single value into 64 distinct nodes (each node learns its own unique slope and bias combination)
         # splits out input into 64 alternate perspectives
+        self.hidden2 = nn.Linear(64, 64) # 1 input value per sample and 64 output features
         
+        self.hidden3 = nn.Linear(64, 64) # 1 input value per sample and 64 output features
+
+
         self.relu = nn.ReLU() # instantiates the relu activation functiuon
 
         self.output = nn.Linear(64, 1) # the output dimension where it takes those 64 nodes and compresses them back into a single continous output (y_hat) prediction
 
     def forward(self, x):
-        return self.output(self.relu(self.hidden(x)))
+        x = self.relu(self.hidden(x))
+        x = self.relu(self.hidden2(x))
+        x = self.relu(self.hidden3(x))
+        return self.output(x)
 
 # 2. Write the training function
 def train_neural_network(np_x_inputs: np.ndarray, np_y_outputs: np.ndarray, epochs : int, learning_rate: float):
@@ -71,7 +79,9 @@ def main():
     x_inputs, y_outputs = generate_training_data("world1", 8826, 1000, "gaussian", "uniform", 0.3)
 
     # Pass them into your fresh training function
-    trained_model = train_neural_network(x_inputs, y_outputs, epochs=10000, learning_rate = 0.1)
+    trained_model = train_neural_network(x_inputs, y_outputs, epochs=20000, learning_rate = 0.01)
+
+    plot_model_vs_world(trained_model, "world1", x_inputs, y_outputs)
 
 
 if __name__ == "__main__":

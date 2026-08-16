@@ -51,7 +51,7 @@ def generate_training_data(world_type: str, seed: int, number_of_datapoints: int
         noise = rng.gumbel(loc=0.0, scale=noise_lvl, size=y_clean.shape)
         noise -= noise.mean() 
     else:
-        raise ValueError(f"Unknown noise distribution: {noise_dist_type}")
+        raise ValueError(f"Unknown noise distribution: {sampling_dist_type}")
 
     y_outputs = y_clean + noise
     print(x_inputs.shape, y_outputs.shape)
